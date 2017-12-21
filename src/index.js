@@ -1,5 +1,5 @@
 import isPlainObject from 'lodash.isplainobject'
-import { noop, toType, getType, isFunction, validateType, isInteger, isArray, warn } from './utils'
+import { noop, toType, getType, isFunction, validateType, validateTypes, isInteger, isArray, warn, typesToString } from './utils'
 
 const VuePropTypes = {
 
@@ -137,20 +137,10 @@ const VuePropTypes = {
       })
     }
 
-    const typesStr = arr.map((type) => {
-      if (type && isArray(type.type)) {
-        return type.type.map(getType)
-      }
-      return getType(type)
-    }).reduce((ret, type) => ret.concat(isArray(type) ? type : [type]), []).join('", "')
+    const typesStr = typesToString(arr)
 
     return this.custom(function oneOfType(value) {
-      const valid = arr.some((type) => {
-        if (type._vueTypes_name === 'oneOf') {
-          return type.type ? validateType(type.type, value, true) : true
-        }
-        return validateType(type, value, true)
-      })
+      const valid = validateTypes(arr, value, true)
       if (!valid) warn(`oneOfType - value type should be one of "${typesStr}"`)
       return valid
     })

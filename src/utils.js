@@ -61,6 +61,28 @@ export const isArray = Array.isArray || function(value) {
  */
 export const isFunction = (value) => toString.call(value) === '[object Function]'
 
+
+
+const _typeToString = (type) => {
+  if (type && isArray(type.type)) {
+    return type.type.map(getType).join('", "')
+  }
+  return getType(type)
+}
+
+/**
+ * Returns a comma separated string of type names
+ *
+ * @param {any} types - type or array of types to check
+ * @returns {string}
+ */
+export const typesToString = (types) => {
+  if (isArray(types)) {
+    return types.map(_typeToString).join('", "')
+  }
+  return _typeToString(types)
+}
+
 /**
  * Adds a `def` method to the object returning a new object with passed in argument as `default` property
  *
@@ -102,6 +124,56 @@ export const withRequired = function (type) {
 }
 
 /**
+ * Adds a `isNullable` getter returning a new object which accepts `null` as prop value
+ *
+ * @param {object} type - Object to enhance
+ */
+export const withNullable = function (type) {
+  Object.defineProperty(type, 'isNullable', {
+    get() {
+      //prevent multiple calls
+      if (this._vueTypes_nullable) {
+        return this
+      }
+
+      const { type, validator } = this
+      const typeStr = type ? typesToString(type) : ''
+
+      Object.defineProperty(this, '_vueTypes_nullable', {
+        enumerable: false,
+        writable: false,
+        value: true
+      })
+
+
+      this.type = null //delegate type check to the custom validator
+      this.required = true // must be required, else Vue will skip prop checking
+
+      this.validator = (value) => {
+        if (value === null) { return true }
+        if (type) {
+          const valid = validateTypes(type, value, true)
+
+          if (!valid) {
+            warn(`value type should be one of "${typeStr}"`)
+            return false
+          }
+        }
+
+        if (typeof validator === 'function') {
+          return validator.call(this, value)
+        }
+
+        return true
+      }
+
+      return this
+    },
+    enumerable: false
+  })
+}
+
+/**
  * Adds `isRequired` and `def` modifiers to an object
  *
  * @param {string} name - Type internal name
@@ -116,6 +188,7 @@ export const toType = (name, obj) => {
   })
   withRequired(obj)
   withDefault(obj)
+  withNullable(obj)
 
   if (isFunction(obj.validator)) {
     obj.validator = obj.validator.bind(obj)
@@ -170,6 +243,24 @@ export const validateType = (type, value, silent = false) => {
     return valid
   }
   return valid
+}
+
+/**
+ * Validated an array of types
+ *
+ * @see validateType
+ * @param {any} types - Type or array of types
+ * @param {any} value - Value to check
+ * @param {boolean} silent - Silence warnings
+ * @returns {boolean}
+ */
+export const validateTypes = (types, value, silent) => {
+  return (isArray(types) ? types : [types]).some((type) => {
+    if (type._vueTypes_name === 'oneOf') {
+      return type.type ? validateType(type.type, value, silent) : true
+    }
+    return validateType(type, value, silent)
+  })
 }
 
 let warn = noop

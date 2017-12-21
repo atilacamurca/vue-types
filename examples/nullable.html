@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Basic Example</title>
+</head>
+<body>
+
+  <div id="app"></div>
+  <script src="https://unpkg.com/vue"></script>
+  <script src="../umd/vue-types.js"></script>
+  <script>
+
+    var User = {
+      props: {
+        details: VueTypes.shape({
+          name: VueTypes.string.isRequired,
+          surname: VueTypes.string.isNullable,
+          hobbies: VueTypes.array.isNullable
+        })
+      },
+      template: `
+      <div>
+        <p>{{details.name}} {{details.surname}}</p>
+        <ul v-if="details.hobbies !== null">
+          <li v-for="hobby in details.hobbies">{{hobby}}</li>
+        </ul>
+        <div v-if="details.hobbies === null">Nothing Here</div>
+      </div>
+      `
+    }
+
+    var hobbies = ['Books' , 'Music', 'Cinema']
+
+    var app = new Vue({
+      el: '#app',
+      template: `
+        <section>
+          <h1>User details:</h1>
+          <button @click="toggleName">toggleName</button>
+          <button @click="toggleSurname">toggleSurname</button>
+          <button @click="toggleHobbies">toggleHobbies</button>
+        <User :details="{ name, surname, hobbies }" /></section>`,
+      data: {
+        name: 'John',
+        surname: 'Doe',
+        hobbies
+      },
+      components: {
+        User
+      },
+      methods: {
+        toggleName: function () {
+          this.name = this.name === null ? 'John' : null
+        },
+        toggleSurname: function () {
+          this.surname = this.surname === null ? 'Doe' : null
+        },
+        toggleHobbies: function () {
+          this.hobbies = Array.isArray(this.hobbies) ? null : hobbies
+        }
+      }
+    });
+
+
+  </script>
+
+</body>
+</html>

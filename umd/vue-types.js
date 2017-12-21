@@ -1,5 +1,5 @@
 
-/*! vue-types - v1.1.0
+/*! vue-types - v1.1.1
  * https://github.com/dwightjack/vue-types
  * Copyright (c) 2017 - Marco Solazzi;
  * Licensed MIT
@@ -214,6 +214,26 @@ var isFunction = function isFunction(value) {
   return toString.call(value) === '[object Function]';
 };
 
+var _typeToString = function _typeToString(type) {
+  if (type && isArray(type.type)) {
+    return type.type.map(getType).join('", "');
+  }
+  return getType(type);
+};
+
+/**
+ * Returns a comma separated string of type names
+ *
+ * @param {any} types - type or array of types to check
+ * @returns {string}
+ */
+var typesToString = function typesToString(types) {
+  if (isArray(types)) {
+    return types.map(_typeToString).join('", "');
+  }
+  return _typeToString(types);
+};
+
 /**
  * Adds a `def` method to the object returning a new object with passed in argument as `default` property
  *
@@ -257,6 +277,62 @@ var withRequired = function withRequired(type) {
 };
 
 /**
+ * Adds a `isNullable` getter returning a new object which accepts `null` as prop value
+ *
+ * @param {object} type - Object to enhance
+ */
+var withNullable = function withNullable(type) {
+  Object.defineProperty(type, 'isNullable', {
+    get: function get() {
+      var _this = this;
+
+      //prevent multiple calls
+      if (this._vueTypes_nullable) {
+        return this;
+      }
+
+      var type = this.type,
+          validator = this.validator;
+
+      var typeStr = type ? typesToString(type) : '';
+
+      Object.defineProperty(this, '_vueTypes_nullable', {
+        enumerable: false,
+        writable: false,
+        value: true
+      });
+
+      this.type = null; //delegate type check to the custom validator
+      this.required = true; // must be required, else Vue will skip prop checking
+
+      this.validator = function (value) {
+        if (value === null) {
+          return true;
+        }
+        if (type) {
+          var valid = validateTypes(type, value, true);
+
+          if (!valid) {
+            warn('value type should be one of "' + typeStr + '"');
+            return false;
+          }
+        }
+
+        if (typeof validator === 'function') {
+          return validator.call(_this, value);
+        }
+
+        return true;
+      };
+
+      return this;
+    },
+
+    enumerable: false
+  });
+};
+
+/**
  * Adds `isRequired` and `def` modifiers to an object
  *
  * @param {string} name - Type internal name
@@ -271,6 +347,7 @@ var toType = function toType(name, obj) {
   });
   withRequired(obj);
   withDefault(obj);
+  withNullable(obj);
 
   if (isFunction(obj.validator)) {
     obj.validator = obj.validator.bind(obj);
@@ -331,6 +408,24 @@ var validateType = function validateType(type, value) {
     return valid;
   }
   return valid;
+};
+
+/**
+ * Validated an array of types
+ *
+ * @see validateType
+ * @param {any} types - Type or array of types
+ * @param {any} value - Value to check
+ * @param {boolean} silent - Silence warnings
+ * @returns {boolean}
+ */
+var validateTypes = function validateTypes(types, value, silent) {
+  return (isArray(types) ? types : [types]).some(function (type) {
+    if (type._vueTypes_name === 'oneOf') {
+      return type.type ? validateType(type.type, value, silent) : true;
+    }
+    return validateType(type, value, silent);
+  });
 };
 
 var warn = noop;
@@ -485,22 +580,10 @@ var VuePropTypes = {
       });
     }
 
-    var typesStr = arr.map(function (type) {
-      if (type && isArray(type.type)) {
-        return type.type.map(getType);
-      }
-      return getType(type);
-    }).reduce(function (ret, type) {
-      return ret.concat(isArray(type) ? type : [type]);
-    }, []).join('", "');
+    var typesStr = typesToString(arr);
 
     return this.custom(function oneOfType(value) {
-      var valid = arr.some(function (type) {
-        if (type._vueTypes_name === 'oneOf') {
-          return type.type ? validateType(type.type, value, true) : true;
-        }
-        return validateType(type, value, true);
-      });
+      var valid = validateTypes(arr, value, true);
       if (!valid) warn('oneOfType - value type should be one of "' + typesStr + '"');
       return valid;
     });

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+      "outDir": "./dist",
+      "declarationDir": "./typings",
+      "strict": true,
+      "target": "es5",
+      "sourceMap": true,
+      "module": "es2015",
+      "declaration": true,
+      "allowSyntheticDefaultImports": true,
+      "moduleResolution": "node",
+      "lib": [
+        "es2015", "dom"
+      ]
+  },
+  "include": [
+      "./src/**/*"
+  ]
+}

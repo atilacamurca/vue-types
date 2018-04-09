@@ -37,6 +37,8 @@
   },
   "bugs": "https://github.com/dwightjack/vue-types/issues",
   "devDependencies": {
+    "@types/lodash.isplainobject": "4.0.3",
+    "@types/node": "9.6.2",
     "babel-cli": "6.26.0",
     "babel-core": "6.26.0",
     "babel-plugin-add-module-exports": "0.2.1",
@@ -73,10 +75,14 @@
     "rollup-plugin-stub": "1.2.0",
     "rollup-plugin-uglify": "3.0.0",
     "serve-index": "1.9.1",
+    "typescript": "2.8.1",
     "vue": "2.5.16"
   },
   "dependencies": {
     "lodash.isplainobject": "4.0.6"
+  },
+  "peerDependencies": {
+    "vue": "*"
   },
   "browserslist": {
     "targets": {

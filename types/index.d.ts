@@ -1,14 +1,12 @@
 import { PropOptions } from 'vue/types/options'
 
-interface typeModifiers {
+export interface VueTypeDef extends PropOptions {
   readonly _vueTypes_name: string
-  readonly def: (def: any) => VueTypeDef,
-  readonly isRequired: VueTypeDef,
+  readonly def: <T>(def: T) => this & { default: T },
+  readonly isRequired: this & { required: boolean },
   _vueTypes_isLoose?: boolean
-  readonly loose?: boolean
+  readonly loose?: this & { _vueTypes_isLoose: boolean }
 }
-
-export type VueTypeDef = typeModifiers & PropOptions
 
 export type Constructor = {
   new (...args: any[]): any
@@ -17,4 +15,6 @@ export type Constructor = {
 export type NativeType = Constructor | (() => Constructor)
 
 export type warnType = (...msg: any[]) => void
+
+export type VueProp = VueTypeDef | PropOptions<any>
 

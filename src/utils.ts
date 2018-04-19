@@ -1,7 +1,7 @@
 import isPlainObject from 'lodash.isplainobject'
 import Vue from 'vue'
 import { Prop, PropOptions } from 'vue/types/options'
-import { warnType, Constructor, NativeType, VueTypeDef } from '../types/'
+import { warnType, Constructor, NativeType, VueTypeDef, VueProp } from '../types/'
 
 const ObjProto = Object.prototype
 const toString = ObjProto.toString
@@ -10,16 +10,16 @@ export const hasOwn = ObjProto.hasOwnProperty
 const FN_MATCH_REGEXP = /^\s*function (\w+)/
 
 // https://github.com/vuejs/vue/blob/dev/src/core/util/props.js#L177
-export const getType = (fn: VueTypeDef | PropOptions | NativeType): string | undefined | null => {
-  const type = (fn !== null && fn !== undefined) ? ((<PropOptions|VueTypeDef>fn).type ? (<PropOptions|VueTypeDef>fn).type : fn) : null
+export const getType = (fn?: VueProp | Prop<any>): string => {
+  const type = (fn !== null && fn !== undefined) ? ((<VueProp>fn).type ? (<VueProp>fn).type : fn) : null
   const match = type && type.toString().match(FN_MATCH_REGEXP)
-  return match && match[1]
+  return match ? match[1] : ''
 }
 
-export const getNativeType = (value: Constructor): null | undefined | string => {
-  if (value === null || value === undefined) return null
+export const getNativeType = (value: Constructor): string => {
+  if (value === null || value === undefined) return ''
   const match = value.constructor.toString().match(FN_MATCH_REGEXP)
-  return match && match[1]
+  return match ? match[1] : ''
 }
 
 /**
@@ -64,6 +64,9 @@ export const isArray = Array.isArray || function(value: any): value is any[] {
  */
 export const isFunction = (value: any): value is (() => any) => toString.call(value) === '[object Function]'
 
+export const isVueType = (value: any): value is VueTypeDef => isPlainObject(value) && has(value, '_vueTypes_name')
+
+export const isPropOptions = (value: any): value is PropOptions<object> => isPlainObject(value)
 /**
  * Adds a `def` method to the object returning a new object with passed in argument as `default` property
  *
@@ -135,22 +138,24 @@ export const toType = (name: string, obj: PropOptions): VueTypeDef => {
  * @param {boolean} silent - Silence warnings
  * @returns {boolean}
  */
-export const validateType = (type: PropOptions | VueTypeDef | Prop<any>, value: any, silent = false) => {
-  let typeToCheck = type
+export const validateType = (type: VueProp | Prop<any> | Prop<any>[], value: any, silent = false) => {
+  let typeToCheck
   let valid = true
-  let expectedType
+  let expectedType = ''
   if (!isPlainObject(type)) {
     typeToCheck = (<PropOptions>{ type })
+  } else {
+    typeToCheck = <VueProp>type
   }
-  const namePrefix = (<VueTypeDef>typeToCheck)._vueTypes_name ? ((<VueTypeDef>typeToCheck)._vueTypes_name + ' - ') : ''
+  const namePrefix = isVueType(typeToCheck) ? typeToCheck._vueTypes_name + ' - ' : ''
 
-  if (hasOwn.call(typeToCheck, 'type') && (<PropOptions>typeToCheck).type !== null) {
-    if (isArray((<PropOptions>typeToCheck).type)) {
-      const typesArray = (<Array<Prop<any>>>(<PropOptions>typeToCheck).type)
+  if (hasOwn.call(typeToCheck, 'type') && typeToCheck.type !== null) {
+    if (isArray(typeToCheck.type)) {
+      const typesArray = typeToCheck.type
       valid = typesArray.some((type) => validateType(type, value, true))
-      expectedType = typesArray.map((type) => getType(type)).join(' or ')
+      expectedType = typesArray.map((type) => getType(type)).filter(Boolean).join(' or ')
     } else {
-      expectedType = getType(typeToCheck)
+      expectedType = getType(typeToCheck.type)
 
       if (expectedType === 'Array') {
         valid = isArray(value)
@@ -159,7 +164,7 @@ export const validateType = (type: PropOptions | VueTypeDef | Prop<any>, value: 
       } else if (expectedType === 'String' || expectedType === 'Number' || expectedType === 'Boolean' || expectedType === 'Function') {
         valid = getNativeType(value) === expectedType
       } else {
-        valid = value instanceof (<any>(<PropOptions>typeToCheck).type)
+        valid = value instanceof <any>typeToCheck.type
       }
     }
   }
@@ -169,7 +174,7 @@ export const validateType = (type: PropOptions | VueTypeDef | Prop<any>, value: 
     return false
   }
 
-  if (hasOwn.call(typeToCheck, 'validator') && isFunction((<PropOptions>typeToCheck).validator)) {
+  if (hasOwn.call(typeToCheck, 'validator') && isFunction(typeToCheck.validator)) {
     // swallow warn
     let oldWarn
     if (silent) {
@@ -177,7 +182,7 @@ export const validateType = (type: PropOptions | VueTypeDef | Prop<any>, value: 
       warn = noop
     }
 
-    valid = (<PropOptions>typeToCheck).validator!(value)
+    valid = (<VueProp>typeToCheck).validator!(value)
     oldWarn && (warn = oldWarn)
 
     if (!valid && silent === false) warn(`${namePrefix}custom validation failed`)

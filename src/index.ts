@@ -1,7 +1,9 @@
 import isPlainObject from 'lodash.isplainobject'
-import { noop, toType, getType, isFunction, validateType, isInteger, isArray, isPropOptions, isVueType, warn } from './utils'
+import { noop, withLoose, toType, getType, isFunction, validateType, isInteger, isArray, isPropOptions, isVueType, warn, defaultEnhancers, compose } from './utils'
 import { Prop, PropOptions } from 'vue/types/options'
 import { VueTypeDef, Constructor, NativeType, VueProp } from '../types'
+
+const toShapeTypeEnhancers = compose(withLoose, defaultEnhancers)
 
 const VueTypes = {
 
@@ -211,21 +213,7 @@ const VueTypes = {
           return validateType(type, value[key])
         })
       }
-    })
-
-    Object.defineProperty(type, '_vueTypes_isLoose', {
-      enumerable: false,
-      writable: true,
-      value: false
-    })
-
-    Object.defineProperty(type, 'loose', {
-      get(this: VueTypeDef): VueTypeDef {
-        this._vueTypes_isLoose = true
-        return this
-      },
-      enumerable: false
-    })
+    }, toShapeTypeEnhancers)
 
     return type
   },

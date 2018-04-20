@@ -1,7 +1,7 @@
 import isPlainObject from 'lodash.isplainobject'
 import Vue from 'vue'
 import { Prop, PropOptions } from 'vue/types/options'
-import { warnType, Constructor, NativeType, VueTypeDef, VueProp } from '../types/'
+import { warnType, Constructor, NativeType, VueTypeDef, VueProp, toTypeEnhancerType } from '../types/'
 
 const ObjProto = Object.prototype
 const toString = ObjProto.toString
@@ -67,12 +67,27 @@ export const isFunction = (value: any): value is (() => any) => toString.call(va
 export const isVueType = (value: any): value is VueTypeDef => isPlainObject(value) && has(value, '_vueTypes_name')
 
 export const isPropOptions = (value: any): value is PropOptions<object> => isPlainObject(value)
+
+type composeFunction = (...args: any[]) => {}
+export const compose = (...funcs: composeFunction[]) => {
+  if (funcs.length === 0) {
+    return (arg?: any) => arg
+  }
+
+  if (funcs.length === 1) {
+    return funcs[0]
+  }
+
+  return funcs.reduce((a, b) => (...args) => a(b(...args)))
+}
+
+
 /**
  * Adds a `def` method to the object returning a new object with passed in argument as `default` property
  *
  * @param {object} type - Object to enhance
  */
-export const withDefault = function (type: PropOptions): void {
+export const withDefault = function (type: PropOptions): PropOptions {
   Object.defineProperty(type, 'def', {
     value(this: VueTypeDef, def?: any): VueTypeDef {
       if (def === undefined && !this.default) {
@@ -90,6 +105,7 @@ export const withDefault = function (type: PropOptions): void {
     enumerable: false,
     writable: false
   })
+  return type
 }
 
 /**
@@ -97,7 +113,7 @@ export const withDefault = function (type: PropOptions): void {
  *
  * @param {object} type - Object to enhance
  */
-export const withRequired = function (type: PropOptions): void {
+export const withRequired = function (type: PropOptions): PropOptions {
   Object.defineProperty(type, 'isRequired', {
     get(this: VueTypeDef): VueTypeDef {
       this.required = true
@@ -106,7 +122,44 @@ export const withRequired = function (type: PropOptions): void {
     writable: false,
     enumerable: false
   })
+  return type
 }
+
+export const withClone = function (type: PropOptions): PropOptions {
+
+  Object.defineProperty(type, 'clone', {
+    value(this: VueTypeDef, name?: string): VueTypeDef {
+      const newType = toType(name || `${this._vueTypes_name}/clone`, Object.assign({}, this))
+      return newType
+    },
+    writable: true,
+    enumerable: false
+  })
+  return type
+}
+
+export const withLoose = (type: PropOptions): PropOptions => {
+  Object.defineProperty(type, '_vueTypes_isLoose', {
+    enumerable: false,
+    writable: true,
+    value: false
+  })
+
+  Object.defineProperty(type, 'loose', {
+    get(this: VueTypeDef): VueTypeDef {
+      this._vueTypes_isLoose = true
+      return this
+    },
+    enumerable: false
+  })
+  return type
+}
+
+export const defaultEnhancers = compose(
+  withClone,
+  withDefault,
+  withRequired
+)
 
 /**
  * Adds `isRequired` and `def` modifiers to an object
@@ -115,18 +168,19 @@ export const withRequired = function (type: PropOptions): void {
  * @param {object} obj - Object to enhance
  * @returns {object}
  */
-export const toType = (name: string, obj: PropOptions): VueTypeDef => {
+export const toType = (name: string, obj: PropOptions, ...enhancers: toTypeEnhancerType[]): VueTypeDef => {
   Object.defineProperty(obj, '_vueTypes_name', {
     enumerable: false,
     writable: false,
     value: name
   })
-  withRequired(obj)
-  withDefault(obj)
+  const enhancersFn = enhancers.length > 0 ? (enhancers.length === 1 ? enhancers[0] : compose(...enhancers)) : defaultEnhancers
+  enhancersFn(obj)
 
   if (isFunction(obj.validator))  {
     obj.validator = obj.validator.bind(obj)
   }
+
   return (<VueTypeDef>obj)
 }
 

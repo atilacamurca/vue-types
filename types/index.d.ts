@@ -18,3 +18,6 @@ export type warnType = (...msg: any[]) => void
 
 export type VueProp = VueTypeDef | PropOptions<any>
 
+export type toTypeEnhancerType = <T>(type: T) => T
+
+

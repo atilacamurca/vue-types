@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var lodash_isplainobject_1 = require("lodash.isplainobject");
 var utils_1 = require("./utils");
 var VueTypes = {
@@ -247,5 +248,5 @@ Object.defineProperty(VueTypes, 'sensibleDefaults', {
         return currentDefaults;
     }
 });
-module.exports = VueTypes;
+exports.default = VueTypes;
 //# sourceMappingURL=index.js.map

@@ -1,6 +1,6 @@
 import commonjs from 'rollup-plugin-commonjs'
 import resolve from 'rollup-plugin-node-resolve'
-import babel from 'rollup-plugin-babel'
+import typescript from 'rollup-plugin-typescript'
 import uglify from 'rollup-plugin-uglify'
 import replace from 'rollup-plugin-replace'
 import filesize from 'rollup-plugin-filesize'
@@ -18,8 +18,8 @@ const banner = `
 const plugins = [
   resolve(),
   commonjs(),
-  babel({
-    exclude: 'node_modules/**' // only transpile our source code
+  typescript({
+    typescript: require('typescript')
   })
 ]
 
@@ -32,14 +32,16 @@ const baseOutputConfig = {
 
 export default [
   {
-    input: 'src/index.js',
+    input: 'src/index.ts',
+    external: ['vue'],
     output: Object.assign({ file: 'umd/vue-types.js'}, baseOutputConfig),
     plugins: [replace({
       'process.env.NODE_ENV': JSON.stringify('development')
     }), ...plugins, filesize()]
   },
   {
-    input: 'src/index.js',
+    input: 'src/index.ts',
+    external: ['vue'],
     output: Object.assign({ file: 'umd/vue-types.min.js' }, baseOutputConfig),
     plugins: [replace({
       'process.env.NODE_ENV': JSON.stringify('production')

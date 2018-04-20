@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-      "outDir": "./dist",
-      "declarationDir": "./typings",
+      "outDir": "dist",
       "strict": true,
       "target": "es5",
       "sourceMap": true,
       "module": "commonjs",
-      "declaration": true,
+      "declaration": false,
       "allowSyntheticDefaultImports": true,
       "moduleResolution": "node",
       "lib": [

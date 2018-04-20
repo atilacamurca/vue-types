@@ -246,4 +246,5 @@ Object.defineProperty(VueTypes, 'sensibleDefaults', {
         return currentDefaults;
     }
 });
+export default VueTypes;
 //# sourceMappingURL=index.js.map

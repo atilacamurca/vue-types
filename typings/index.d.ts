@@ -38,4 +38,4 @@ declare const VueTypes: {
         toType: (name: string, obj: PropOptions<any>) => VueTypeDef;
     };
 };
-export = VueTypes;
+export default VueTypes;

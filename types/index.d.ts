@@ -1,5 +1,7 @@
 import { PropOptions } from 'vue/types/options'
 
+export as namespace VueTypes;
+
 export interface VueTypeDef extends PropOptions {
   readonly _vueTypes_name: string
   readonly def: <T>(def: T) => this & { default: T },

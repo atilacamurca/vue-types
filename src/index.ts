@@ -267,4 +267,4 @@ Object.defineProperty(VueTypes, 'sensibleDefaults', {
   }
 })
 
-export default VueTypes
+export = VueTypes

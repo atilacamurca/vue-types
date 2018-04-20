@@ -18,8 +18,8 @@
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "npm run lint && npm test && npm run build:cjs && npm run build:es && npm run build:umd",
-    "build:cjs": "rimraf dist && cross-env BABEL_ENV=cjs babel ./src -d dist",
-    "build:es": "rimraf es && cross-env BABEL_ENV=es babel ./src -d es",
+    "build:cjs": "rimraf dist && tsc",
+    "build:es": "rimraf es && tsc --module es2015 --outDir es",
     "build:umd": "rimraf umd && cross-env BABEL_ENV=rollup rollup -c rollup.config.js",
     "test": "cross-env BABEL_ENV=rollup karma start karma.conf.js --single-run --browsers PhantomJS",
     "test:all": "cross-env BABEL_ENV=rollup karma start karma.conf.js --single-run --browsers Chrome,Firefox",

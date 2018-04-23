@@ -1,10 +1,16 @@
 import isPlainObject from 'lodash.isplainobject'
 import Vue from 'vue'
 import { Prop, PropOptions } from 'vue/types/options'
-import { warnType, Constructor, NativeType, VueTypeDef, VueProp } from '../types/'
+import { Constructor, VueTypeDef, VueProp } from '../types/'
+
+
+type warnType = (...msg: any[]) => void
 
 const ObjProto = Object.prototype
 const toString = ObjProto.toString
+
+
+
 export const hasOwn = ObjProto.hasOwnProperty
 
 const FN_MATCH_REGEXP = /^\s*function (\w+)/

@@ -14,9 +14,5 @@ export type Constructor = {
   new (...args: any[]): any
 }
 
-export type NativeType = Constructor | (() => Constructor)
-
-export type warnType = (...msg: any[]) => void
-
 export type VueProp = VueTypeDef | PropOptions<any>
 

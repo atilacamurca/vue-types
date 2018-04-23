@@ -27,7 +27,8 @@ const baseOutputConfig = {
   format: 'umd',
   name: 'VueTypes',
   sourcemap: true,
-  banner
+  banner,
+  globals: { vue: 'Vue' }
 }
 
 export default [

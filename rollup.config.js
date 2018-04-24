@@ -1,6 +1,7 @@
+import path from 'path'
 import commonjs from 'rollup-plugin-commonjs'
 import resolve from 'rollup-plugin-node-resolve'
-import typescript from 'rollup-plugin-typescript'
+import typescript from 'rollup-plugin-typescript2'
 import uglify from 'rollup-plugin-uglify'
 import replace from 'rollup-plugin-replace'
 import filesize from 'rollup-plugin-filesize'
@@ -19,7 +20,9 @@ const plugins = [
   resolve(),
   commonjs(),
   typescript({
-    typescript: require('typescript')
+    tsconfig: path.join(__dirname, 'tsconfig.es.json'),
+    typescript: require('typescript'),
+    exclude: 'node_modules/**'
   })
 ]
 

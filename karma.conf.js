@@ -2,13 +2,13 @@
 // Generated on Wed Oct 26 2016 17:54:27 GMT+0200 (CEST)
 
 const path = require('path');
-const resolve = require('rollup-plugin-node-resolve');
-const commonjs = require('rollup-plugin-commonjs');
-const babel = require('rollup-plugin-babel');
-const replace = require('rollup-plugin-replace');
-const stub = require('rollup-plugin-stub');
-const globals = require('rollup-plugin-node-globals');
-const builtins = require('rollup-plugin-node-builtins');
+// const resolve = require('rollup-plugin-node-resolve');
+// const commonjs = require('rollup-plugin-commonjs');
+// const typescript = require('rollup-plugin-typescript2');
+// const replace = require('rollup-plugin-replace');
+// const stub = require('rollup-plugin-stub');
+// const globals = require('rollup-plugin-node-globals');
+// const builtins = require('rollup-plugin-node-builtins');
 
 const production = process.env.PRODUCTION === 'true';
 
@@ -30,7 +30,7 @@ const baseConfig = {
 
   // frameworks to use
   // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-  frameworks: ['mocha', 'inline-mocha-fix'],
+  frameworks: ['mocha', 'karma-typescript', 'inline-mocha-fix'],
 
   plugins: [
     'karma-*',
@@ -41,49 +41,74 @@ const baseConfig = {
 
   // list of files / patterns to load in the browser
   files: [
-    { pattern: 'src/*.js', included: false },
-    'test/**/*.spec.js'
-  ],
-
-  // list of files to exclude
-  exclude: [
+    { pattern: 'src/*.ts', included: false },
+    { pattern: 'test/**/*.spec.ts' }
   ],
 
   // preprocess matching files before serving them to the browser
   // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
   preprocessors: {
     // add webpack as preprocessor
-    'src/**/*.js': ['rollup'],
-    'test/**/*.spec.js': ['rollup']
+    'src/**/*.ts': ['karma-typescript'],
+    'test/**/*.spec.ts': ['karma-typescript']
   },
 
-  rollupPreprocessor: {
-    plugins: [
-      resolve({
-        preferBuiltins: true
-      }),
-      commonjs(),
-      babel({
-        exclude: 'node_modules/**'
-      }),
-      replace({
-        'process.env.NODE_DEBUG': !production
-      }),
-      stub(),
-      globals(),
-      builtins()
+  exclude: [
+    'src/**/*.cjs.ts'
+  ],
+
+  // rollupPreprocessor: {
+  //   plugins: [
+  //     resolve({
+  //       preferBuiltins: true
+  //     }),
+  //     commonjs(),
+  //     typescript({
+  //       tsconfig: path.join(__dirname, 'tsconfig.es.json'),
+  //       typescript: require('typescript'),
+  //       rollupCommonJSResolveHack: true,
+  //       clean: true
+  //     }),
+  //     replace({
+  //       'process.env.NODE_DEBUG': !production
+  //     }),
+  //     stub(),
+  //     globals(),
+  //     builtins()
+  //   ],
+  //   output: {
+  //     format: 'iife',
+  //     name: 'VueTypes',
+  //     sourcemap: 'inline'
+  //   }
+  // },
+
+  karmaTypescriptConfig: {
+    compilerOptions: {
+      types : [
+        'mocha',
+        'node'
+      ]
+    },
+    include: [
+      'test/*.spec.ts',
+      'src/**/*.ts'
     ],
-    output: {
-      format: 'iife',
-      name: 'VueTypes',
-      sourcemap: 'inline'
-    }
+    coverageOptions: {
+      exclude: /\.test\.ts/,
+    },
+    bundlerOptions: {
+      transforms: [
+          require('karma-typescript-es6-transform')()
+      ]
+    },
+    tsconfig: './tsconfig.json'
   },
 
   // test results reporter to use
   // possible values: 'dots', 'progress'
   // available reporters: https://npmjs.org/browse/keyword/karma-reporter
-  reporters: ['mocha'],
+  reporters: ['mocha', 'karma-typescript'],
 
   // web server port
   port: 9876,

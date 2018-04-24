@@ -78,8 +78,8 @@ var VueTypes = {
         }
         var msg = "oneOf - value should be one of \"" + arr.join('", "') + "\"";
         var allowedTypes = arr.reduce(function (ret, v) {
-            if (v !== null && v !== undefined) {
-                ret.indexOf(v.constructor) === -1 && ret.push(v.constructor);
+            if (v !== null && v !== undefined && ret.indexOf(v.constructor) === -1) {
+                ret.push(v.constructor);
             }
             return ret;
         }, []);
@@ -195,15 +195,15 @@ var VueTypes = {
                         utils_1.warn("shape - object is missing \"" + key + "\" property");
                         return false;
                     }
-                    var type = obj[key];
-                    return utils_1.validateType(type, value[key]);
+                    var t = obj[key];
+                    return utils_1.validateType(t, value[key]);
                 });
             }
         });
         Object.defineProperty(type, '_vueTypes_isLoose', {
             enumerable: false,
-            writable: true,
-            value: false
+            value: false,
+            writable: true
         });
         Object.defineProperty(type, 'loose', {
             get: function () {
@@ -222,13 +222,13 @@ var VueTypes = {
     }
 };
 var typeDefaults = function () { return ({
-    func: utils_1.noop,
-    bool: true,
-    string: '',
-    number: 0,
     array: function () { return []; },
+    bool: true,
+    func: utils_1.noop,
+    integer: 0,
+    number: 0,
     object: function () { return ({}); },
-    integer: 0
+    string: ''
 }); };
 var currentDefaults = typeDefaults();
 Object.defineProperty(VueTypes, 'sensibleDefaults', {

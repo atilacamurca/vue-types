@@ -1,15 +1,12 @@
 import isPlainObject from 'lodash.isplainobject'
 import Vue from 'vue'
 import { Prop, PropOptions } from 'vue/types/options'
-import { Constructor, VueTypeDef, VueProp } from './types'
-
+import { IConstructor, IVueTypeDef, VueProp } from './types'
 
 type warnType = (...msg: any[]) => void
 
 const ObjProto = Object.prototype
 const toString = ObjProto.toString
-
-
 
 export const hasOwn = ObjProto.hasOwnProperty
 
@@ -17,12 +14,17 @@ const FN_MATCH_REGEXP = /^\s*function (\w+)/
 
 // https://github.com/vuejs/vue/blob/dev/src/core/util/props.js#L177
 export const getType = (fn?: VueProp | Prop<any>): string => {
-  const type = (fn !== null && fn !== undefined) ? ((<VueProp>fn).type ? (<VueProp>fn).type : fn) : null
+  const type = (fn !== null && fn !== undefined) ? ((fn as VueProp).type ? (fn as VueProp).type : fn) : null
   const match = type && type.toString().match(FN_MATCH_REGEXP)
   return match ? match[1] : ''
 }
 
-export const getNativeType = (value: Constructor): string => {
+/**
+ * Returns the native type of a constructor
+ *
+ * @param value
+ */
+export const getNativeType = (value: IConstructor): string => {
   if (value === null || value === undefined) return ''
   const match = value.constructor.toString().match(FN_MATCH_REGEXP)
   return match ? match[1] : ''
@@ -31,6 +33,7 @@ export const getNativeType = (value: Constructor): string => {
 /**
  * No-op function
  */
+// tslint:disable-next-line no-empty
 export const noop = () => {}
 
 /**
@@ -48,9 +51,9 @@ export const has = (obj: object, prop: string): boolean => hasOwn.call(obj, prop
  * @param {*} value - The value to be tested for being an integer.
  * @returns {boolean}
  */
-export const isInteger = Number.isInteger || function (value: any): boolean {
+export const isInteger = Number.isInteger || ((value: any): boolean => {
   return typeof value === 'number' && isFinite(value) && Math.floor(value) === value
-}
+})
 
 /**
  * Determines whether the passed value is an Array.
@@ -58,9 +61,9 @@ export const isInteger = Number.isInteger || function (value: any): boolean {
  * @param {*} value - The value to be tested for being an array.
  * @returns {boolean}
  */
-export const isArray = Array.isArray || function(value: any): value is any[] {
+export const isArray = Array.isArray || ((value: any): value is any[] => {
   return toString.call(value) === '[object Array]'
-}
+})
 
 /**
  * Checks if a value is a function
@@ -70,7 +73,7 @@ export const isArray = Array.isArray || function(value: any): value is any[] {
  */
 export const isFunction = (value: any): value is (() => any) => toString.call(value) === '[object Function]'
 
-export const isVueType = (value: any): value is VueTypeDef => isPlainObject(value) && has(value, '_vueTypes_name')
+export const isVueType = (value: any): value is IVueTypeDef => isPlainObject(value) && has(value, '_vueTypes_name')
 
 export const isPropOptions = (value: any): value is PropOptions<object> => isPlainObject(value)
 /**
@@ -78,9 +81,9 @@ export const isPropOptions = (value: any): value is PropOptions<object> => isPla
  *
  * @param {object} type - Object to enhance
  */
-export const withDefault = function (type: PropOptions): void {
+export const withDefault = (type: PropOptions): void => {
   Object.defineProperty(type, 'def', {
-    value(this: VueTypeDef, def?: any): VueTypeDef {
+    value(this: IVueTypeDef, def?: any): IVueTypeDef {
       if (def === undefined && !this.default) {
         return this
       }
@@ -88,9 +91,9 @@ export const withDefault = function (type: PropOptions): void {
         warn(`${this._vueTypes_name} - invalid default value: "${def}"`, def)
         return this
       }
-      this.default = (isArray(def) || isPlainObject(def)) ? function (): any {
+      this.default = (isArray(def) || isPlainObject(def)) ? ((): any => {
         return def
-      } : def
+      }) : def
       return this
     },
     enumerable: false,
@@ -103,14 +106,14 @@ export const withDefault = function (type: PropOptions): void {
  *
  * @param {object} type - Object to enhance
  */
-export const withRequired = function (type: PropOptions): void {
+export const withRequired = (type: PropOptions): void => {
   Object.defineProperty(type, 'isRequired', {
-    get(this: VueTypeDef): VueTypeDef {
+    get(this: IVueTypeDef): IVueTypeDef {
       this.required = true
       return this
     },
-    writable: false,
-    enumerable: false
+    enumerable: false,
+    writable: false
   })
 }
 
@@ -121,11 +124,11 @@ export const withRequired = function (type: PropOptions): void {
  * @param {object} obj - Object to enhance
  * @returns {object}
  */
-export const toType = (name: string, obj: PropOptions): VueTypeDef => {
+export const toType = (name: string, obj: PropOptions): IVueTypeDef => {
   Object.defineProperty(obj, '_vueTypes_name', {
     enumerable: false,
-    writable: false,
-    value: name
+    value: name,
+    writable: false
   })
   withRequired(obj)
   withDefault(obj)
@@ -133,7 +136,7 @@ export const toType = (name: string, obj: PropOptions): VueTypeDef => {
   if (isFunction(obj.validator))  {
     obj.validator = obj.validator.bind(obj)
   }
-  return (<VueTypeDef>obj)
+  return (obj as IVueTypeDef)
 }
 
 /**
@@ -144,22 +147,22 @@ export const toType = (name: string, obj: PropOptions): VueTypeDef => {
  * @param {boolean} silent - Silence warnings
  * @returns {boolean}
  */
-export const validateType = (type: VueProp | Prop<any> | Prop<any>[], value: any, silent = false) => {
+export const validateType = (type: VueProp | Prop<any> | Array<Prop<any>>, value: any, silent = false) => {
   let typeToCheck
   let valid = true
   let expectedType = ''
   if (!isPlainObject(type)) {
-    typeToCheck = (<PropOptions>{ type })
+    typeToCheck = ({ type } as PropOptions)
   } else {
-    typeToCheck = <VueProp>type
+    typeToCheck = (type as VueProp)
   }
   const namePrefix = isVueType(typeToCheck) ? typeToCheck._vueTypes_name + ' - ' : ''
 
   if (hasOwn.call(typeToCheck, 'type') && typeToCheck.type !== null) {
     if (isArray(typeToCheck.type)) {
       const typesArray = typeToCheck.type
-      valid = typesArray.some((type) => validateType(type, value, true))
-      expectedType = typesArray.map((type) => getType(type)).filter(Boolean).join(' or ')
+      valid = typesArray.some((t) => validateType(t, value, true))
+      expectedType = typesArray.map((t) => getType(t)).filter(Boolean).join(' or ')
     } else {
       expectedType = getType(typeToCheck.type)
 
@@ -170,12 +173,13 @@ export const validateType = (type: VueProp | Prop<any> | Prop<any>[], value: any
       } else if (expectedType === 'String' || expectedType === 'Number' || expectedType === 'Boolean' || expectedType === 'Function') {
         valid = getNativeType(value) === expectedType
       } else {
-        valid = value instanceof <any>typeToCheck.type
+        valid = value instanceof (typeToCheck.type as any)
       }
     }
   }
 
   if (!valid) {
+    // tslint:disable-next-line no-unused-expression
     silent === false && warn(`${namePrefix}value "${value}" should be of type "${expectedType}"`)
     return false
   }
@@ -188,7 +192,8 @@ export const validateType = (type: VueProp | Prop<any> | Prop<any>[], value: any
       warn = noop
     }
 
-    valid = (<VueProp>typeToCheck).validator!(value)
+    valid = (typeToCheck as VueProp).validator!(value)
+    // tslint:disable-next-line no-unused-expression
     oldWarn && (warn = oldWarn)
 
     if (!valid && silent === false) warn(`${namePrefix}custom validation failed`)
@@ -199,9 +204,12 @@ export const validateType = (type: VueProp | Prop<any> | Prop<any>[], value: any
 
 let warn: warnType = noop
 
-if (process.env.NODE_ENV !== 'production') {
+// fix: prevent errors like
+// Operator '!==' cannot be applied to types '"development"' and '"production"'.
+if ((process.env.NODE_ENV as any) !== 'production') {
   const hasConsole = typeof console !== 'undefined'
   warn = hasConsole ? (msg) => {
+    // tslint:disable-next-line no-unused-expression no-console
     Vue.config.silent === false && console.warn(`[VueTypes warn]: ${msg}`)
   } : noop
 }

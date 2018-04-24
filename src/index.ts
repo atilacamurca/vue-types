@@ -1,9 +1,21 @@
 import isPlainObject from 'lodash.isplainobject'
-import { noop, toType, getType, isFunction, validateType, isInteger, isArray, isPropOptions, isVueType, warn } from './utils'
 import { Prop, PropOptions } from 'vue/types/options'
-import { VueTypeDef, Constructor, VueProp } from './types'
+import { IConstructor, IVueTypeDef, IVueTypes, VueProp } from './types'
+import { getType, isArray, isFunction, isInteger, isPropOptions, isVueType, noop, toType, validateType, warn } from './utils'
 
-const VueTypes = {
+const typeDefaults = (): { [key: string]: any} => ({
+  array: () => [],
+  bool: true,
+  func: noop,
+  integer: 0,
+  number: 0,
+  object: () => ({}),
+  string: ''
+})
+
+let currentDefaults = typeDefaults()
+
+const VueTypes: IVueTypes =  {
 
   get any() {
     return toType('any', {
@@ -65,13 +77,13 @@ const VueTypes = {
     })
   },
 
-  custom(validatorFn: (...value: any[]) => boolean, warnMsg = 'custom validation failed') {
+  custom(validatorFn, warnMsg) {
     if (typeof validatorFn !== 'function') {
       throw new TypeError('[VueTypes error]: You must provide a function as argument')
     }
 
     return toType((validatorFn).name || '<<anonymous function>>', {
-      validator(this: VueTypeDef, ...args: any[]) {
+      validator(this: IVueTypeDef, ...args: any[]) {
         const valid = validatorFn(...args)
         if (!valid) warn(`${this._vueTypes_name} - ${warnMsg}`)
         return valid
@@ -79,14 +91,14 @@ const VueTypes = {
     })
   },
 
-  oneOf<T>(arr: T[]) {
+  oneOf(arr) {
     if (!isArray(arr)) {
       throw new TypeError('[VueTypes error]: You must provide an array as argument')
     }
     const msg = `oneOf - value should be one of "${arr.join('", "')}"`
-    const allowedTypes = arr.reduce((ret: Constructor[], v) => {
-      if (v !== null && v !== undefined) {
-        ret.indexOf((<any>v).constructor) === -1 && ret.push(<any>v.constructor)
+    const allowedTypes = arr.reduce((ret: IConstructor[], v) => {
+      if (v !== null && v !== undefined && ret.indexOf((v as any).constructor) === -1) {
+        ret.push((v as any).constructor)
       }
       return ret
     }, [])
@@ -101,20 +113,20 @@ const VueTypes = {
     })
   },
 
-  instanceOf(instanceConstructor: Constructor) {
+  instanceOf(instanceConstructor) {
     return toType('instanceOf', {
       type: instanceConstructor
     })
   },
 
-  oneOfType(arr: (Prop<any> | VueProp)[]) {
+  oneOfType(arr) {
     if (!isArray(arr)) {
       throw new TypeError('[VueTypes error]: You must provide an array as argument')
     }
 
     let hasCustomValidators = false
 
-    const nativeChecks = arr.reduce((ret: Prop<any>[], type, i) => {
+    const nativeChecks = arr.reduce((ret: Array<Prop<any>>, type, i) => {
       if (isPropOptions(type)) {
         if (isVueType(type) && type._vueTypes_name === 'oneOf' && isArray(type.type)) {
           return ret.concat(type.type)
@@ -127,7 +139,7 @@ const VueTypes = {
         }
         return ret
       }
-      ret.push((<Prop<any>>type))
+      ret.push(type as Prop<any> )
       return ret
     }, []).filter(Boolean)
 
@@ -141,7 +153,7 @@ const VueTypes = {
 
     const typesStr = arr.reduce((ret: string[], type) => {
       if (isPropOptions(type) && isArray(type.type)) {
-        return ret.concat((<Prop<any>[]>type.type).map(getType))
+        return ret.concat((type.type as Array<Prop<any>>).map(getType))
       } else if (isArray(type)) {
         return ret.concat(...type)
       }
@@ -161,10 +173,10 @@ const VueTypes = {
     })
   },
 
-  arrayOf(type: VueTypeDef | Prop<any>) {
+  arrayOf(type) {
     return toType('arrayOf', {
       type: Array,
-      validator(values: Array<any>) {
+      validator(values: any[]) {
         const valid = values.every((value) => validateType(type, value))
         if (!valid) warn(`arrayOf - value must be an array of "${getType(type)}"`)
         return valid
@@ -172,7 +184,7 @@ const VueTypes = {
     })
   },
 
-  objectOf(type: VueTypeDef | Prop<any>) {
+  objectOf(type) {
     return toType('objectOf', {
       type: Object,
       validator(obj) {
@@ -183,9 +195,9 @@ const VueTypes = {
     })
   },
 
-  shape(obj: { [key: string]: VueProp|Prop<any> }) {
+  shape(obj) {
     const keys = Object.keys(obj)
-    const requiredKeys = keys.filter((key) => obj[key] && (<VueProp>obj[key]).required === true)
+    const requiredKeys = keys.filter((key) => obj[key] && (obj[key] as VueProp).required === true)
 
     const type = toType('shape', {
       type: Object,
@@ -207,20 +219,20 @@ const VueTypes = {
             warn(`shape - object is missing "${key}" property`)
             return false
           }
-          const type = obj[key]
-          return validateType(type, value[key])
+          const t = obj[key]
+          return validateType(t, value[key])
         })
       }
     })
 
     Object.defineProperty(type, '_vueTypes_isLoose', {
       enumerable: false,
-      writable: true,
-      value: false
+      value: false,
+      writable: true
     })
 
     Object.defineProperty(type, 'loose', {
-      get(this: VueTypeDef): VueTypeDef {
+      get(this: IVueTypeDef): IVueTypeDef {
         this._vueTypes_isLoose = true
         return this
       },
@@ -231,25 +243,13 @@ const VueTypes = {
   },
 
   utils: {
-    validate(value: any, type: VueProp | Prop<any> | Prop<any>[]) {
+    validate(value, type) {
       return validateType(type, value, true)
     },
     toType
   }
 
 }
-
-const typeDefaults = (): { [key: string]: any} => ({
-  func: noop,
-  bool: true,
-  string: '',
-  number: 0,
-  array: () => [],
-  object: () => ({}),
-  integer: 0
-})
-
-let currentDefaults = typeDefaults()
 
 Object.defineProperty(VueTypes, 'sensibleDefaults', {
   enumerable: false,

@@ -163,6 +163,11 @@
       var match = type && type.toString().match(FN_MATCH_REGEXP);
       return match ? match[1] : '';
   };
+  /**
+   * Returns the native type of a constructor
+   *
+   * @param value
+   */
   var getNativeType = function (value) {
       if (value === null || value === undefined)
           return '';
@@ -172,6 +177,7 @@
   /**
    * No-op function
    */
+  // tslint:disable-next-line no-empty
   var noop = function () { };
   /**
    * Checks for a own property in an object
@@ -187,18 +193,18 @@
    * @param {*} value - The value to be tested for being an integer.
    * @returns {boolean}
    */
-  var isInteger = Number.isInteger || function (value) {
+  var isInteger = Number.isInteger || (function (value) {
       return typeof value === 'number' && isFinite(value) && Math.floor(value) === value;
-  };
+  });
   /**
    * Determines whether the passed value is an Array.
    *
    * @param {*} value - The value to be tested for being an array.
    * @returns {boolean}
    */
-  var isArray = Array.isArray || function (value) {
+  var isArray = Array.isArray || (function (value) {
       return toString.call(value) === '[object Array]';
-  };
+  });
   /**
    * Checks if a value is a function
    *
@@ -223,9 +229,9 @@
                   warn(this._vueTypes_name + " - invalid default value: \"" + def + "\"", def);
                   return this;
               }
-              this.default = (isArray(def) || lodash_isplainobject(def)) ? function () {
+              this.default = (isArray(def) || lodash_isplainobject(def)) ? (function () {
                   return def;
-              } : def;
+              }) : def;
               return this;
           },
           enumerable: false,
@@ -243,8 +249,8 @@
               this.required = true;
               return this;
           },
-          writable: false,
-          enumerable: false
+          enumerable: false,
+          writable: false
       });
   };
   /**
@@ -257,8 +263,8 @@
   var toType = function (name, obj) {
       Object.defineProperty(obj, '_vueTypes_name', {
           enumerable: false,
-          writable: false,
-          value: name
+          value: name,
+          writable: false
       });
       withRequired(obj);
       withDefault(obj);
@@ -290,8 +296,8 @@
       if (hasOwn.call(typeToCheck, 'type') && typeToCheck.type !== null) {
           if (isArray(typeToCheck.type)) {
               var typesArray = typeToCheck.type;
-              valid = typesArray.some(function (type) { return validateType(type, value, true); });
-              expectedType = typesArray.map(function (type) { return getType(type); }).filter(Boolean).join(' or ');
+              valid = typesArray.some(function (t) { return validateType(t, value, true); });
+              expectedType = typesArray.map(function (t) { return getType(t); }).filter(Boolean).join(' or ');
           }
           else {
               expectedType = getType(typeToCheck.type);
@@ -310,6 +316,7 @@
           }
       }
       if (!valid) {
+          // tslint:disable-next-line no-unused-expression
           silent === false && warn(namePrefix + "value \"" + value + "\" should be of type \"" + expectedType + "\"");
           return false;
       }
@@ -321,6 +328,7 @@
               warn = noop;
           }
           valid = typeToCheck.validator(value);
+          // tslint:disable-next-line no-unused-expression
           oldWarn && (warn = oldWarn);
           if (!valid && silent === false)
               warn(namePrefix + "custom validation failed");
@@ -332,6 +340,7 @@
   {
       var hasConsole = typeof console !== 'undefined';
       warn = hasConsole ? function (msg) {
+          // tslint:disable-next-line no-unused-expression no-console
           Vue.config.silent === false && console.warn("[VueTypes warn]: " + msg);
       } : noop;
   }
@@ -412,8 +421,8 @@
           }
           var msg = "oneOf - value should be one of \"" + arr.join('", "') + "\"";
           var allowedTypes = arr.reduce(function (ret, v) {
-              if (v !== null && v !== undefined) {
-                  ret.indexOf(v.constructor) === -1 && ret.push(v.constructor);
+              if (v !== null && v !== undefined && ret.indexOf(v.constructor) === -1) {
+                  ret.push(v.constructor);
               }
               return ret;
           }, []);
@@ -529,15 +538,15 @@
                           warn("shape - object is missing \"" + key + "\" property");
                           return false;
                       }
-                      var type = obj[key];
-                      return validateType(type, value[key]);
+                      var t = obj[key];
+                      return validateType(t, value[key]);
                   });
               }
           });
           Object.defineProperty(type, '_vueTypes_isLoose', {
               enumerable: false,
-              writable: true,
-              value: false
+              value: false,
+              writable: true
           });
           Object.defineProperty(type, 'loose', {
               get: function () {
@@ -556,13 +565,13 @@
       }
   };
   var typeDefaults = function () { return ({
-      func: noop,
-      bool: true,
-      string: '',
-      number: 0,
       array: function () { return []; },
+      bool: true,
+      func: noop,
+      integer: 0,
+      number: 0,
       object: function () { return ({}); },
-      integer: 0
+      string: ''
   }); };
   var currentDefaults = typeDefaults();
   Object.defineProperty(VueTypes, 'sensibleDefaults', {

@@ -19,20 +19,21 @@ describe('`toType()`', () => {
   it('should call `withDefault` on passed in object', () => {
     const obj = {}
 
-    utils.toType('testType', obj)
-    expect(obj.def).toBeA(Function)
+    const type = utils.toType('testType', obj)
+    expect(type.def).toBeA(Function)
   })
 
   it('should bind provided `validator function to the passed in object`', () => {
     const obj = {
-      validator () {
-        return this
+      default: 'x',
+      validator(value: any) {
+        return this.default === value
       }
     }
 
     const type = utils.toType('testType', obj)
-    const validator = type.validator
+    const validator = (type.validator as (value: any) => boolean)
 
-    expect(validator()).toBe(obj)
+    expect(validator('x')).toBe(true)
   })
 })

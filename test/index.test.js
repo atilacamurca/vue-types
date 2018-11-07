@@ -394,6 +394,18 @@ describe('VueTypes', () => {
       expect(validator([0, 1, 2])).toBe(true)
       expect(validator([0, 1.2, 2])).toBe(false)
     })
+
+    it('should validate complex types', () => {
+      const shapeType = VueTypes.shape({
+        title: VueTypes.string.isRequired,
+        workDurationType: VueTypes.oneOf(['few_months', 'few_weeks', 'one_time', 'long_term', 'finding_out'])
+      })
+
+      const type = VueTypes.arrayOf(shapeType)
+      const data = [{ title: 'demo', workDurationType: 'few_months' }]
+      const validator = forceNoContext(type.validator)
+      expect(validator(data)).toBe(true)
+    })
   })
 
   describe('`.objectOf`', () => {
